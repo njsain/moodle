@@ -2352,7 +2352,7 @@ class assign {
             return false;
         }
         $assign = clone $this->get_instance();
-        $assign->cmidnumber = $this->get_course_module()->id;
+        $assign->cmidnumber = $this->get_course_module()->idnumber;
 
         return assign_grade_item_update($assign, $gradebookgrade);
     }
@@ -2662,7 +2662,9 @@ class assign {
             // Give each submission plugin a chance to process the submission
             $plugins = $this->get_submission_plugins();
             foreach ($plugins as $plugin) {
-                $plugin->submit_for_grading();
+                if ($plugin->is_enabled() && $plugin->is_visible()) {
+                    $plugin->submit_for_grading($submission);
+                }
             }
 
             $submission->status = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
@@ -2943,7 +2945,7 @@ class assign {
             $allempty = true;
             $pluginerror = false;
             foreach ($this->submissionplugins as $plugin) {
-                if ($plugin->is_enabled()) {
+                if ($plugin->is_enabled() && $plugin->is_visible()) {
                     if (!$plugin->save($submission, $data)) {
                         $notices[] = $plugin->get_error();
                         $pluginerror = true;
@@ -3286,6 +3288,13 @@ class assign {
         $submission->status = ASSIGN_SUBMISSION_STATUS_DRAFT;
         $this->update_submission($submission, false);
 
+        // Give each submission plugin a chance to process the reverting to draft.
+        $plugins = $this->get_submission_plugins();
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && $plugin->is_visible()) {
+                $plugin->revert_to_draft($submission);
+            }
+        }
         // update the modified time on the grade (grader modified)
         $grade = $this->get_user_grade($userid, true);
         $this->update_grade($grade);
@@ -3313,6 +3322,15 @@ class assign {
             $userid = required_param('userid', PARAM_INT);
         }
 
+        // Give each submission plugin a chance to process the locking.
+        $plugins = $this->get_submission_plugins();
+        $submission = $this->get_user_submission($userid, false);
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && $plugin->is_visible()) {
+                $plugin->lock($submission);
+            }
+        }
+
         $grade = $this->get_user_grade($userid, true);
         $grade->locked = 1;
         $grade->grader = $USER->id;
@@ -3338,6 +3356,15 @@ class assign {
 
         if (!$userid) {
             $userid = required_param('userid', PARAM_INT);
+        }
+
+        // Give each submission plugin a chance to process the locking.
+        $plugins = $this->get_submission_plugins();
+        $submission = $this->get_user_submission($userid, false);
+        foreach ($plugins as $plugin) {
+            if ($plugin->is_enabled() && $plugin->is_visible()) {
+                $plugin->unlock($submission);
+            }
         }
 
         $grade = $this->get_user_grade($userid, true);
