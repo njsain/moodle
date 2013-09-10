@@ -63,7 +63,7 @@ class laegrader_report_preferences_form extends moodleform {
             $preferences['prefshow']['showcalculations']  = $checkbox_default;
             $preferences['prefshow']['showeyecons']       = $checkbox_default;
             if ($canviewhidden) {
-                $preferences['prefshow']['showaverages']  = $checkbox_default;
+//                $preferences['prefshow']['showaverages']  = $checkbox_default;
             }
             $preferences['prefshow']['showlocks']         = $checkbox_default;
 
@@ -78,6 +78,7 @@ class laegrader_report_preferences_form extends moodleform {
                                                           0=>0, 1=>1, 2=>2, 3=>3, 4=>4, 5=>5));
             $advanced = array_merge($advanced, array('rangesdisplaytype', 'rangesdecimalpoints'));
 
+/*
             if ($canviewhidden) {
                 $preferences['prefrows']['averagesdisplaytype'] = array(GRADE_REPORT_PREFERENCE_DEFAULT => '*default*',
                                                                         GRADE_REPORT_PREFERENCE_INHERIT => get_string('inherit', 'grades'),
@@ -93,6 +94,7 @@ class laegrader_report_preferences_form extends moodleform {
 
                 $advanced = array_merge($advanced, array('averagesdisplaytype', 'averagesdecimalpoints'));
             }
+*/
         }
 
         // quickgrading and showquickfeedback are conditional on grade:edit capability
@@ -105,7 +107,7 @@ class laegrader_report_preferences_form extends moodleform {
 
         // View capability is the lowest permission. Users with grade:manage or grade:edit must also have grader:view
         if (has_capability('gradereport/laegrader:view', $context)) {
-//            $preferences['prefgeneral']['studentsperpage'] = 'text'; no students per page in LAE grader report
+            $preferences['prefgeneral']['studentsperpage'] = 'text'; //no students per page in LAE grader report
 /* Removed because the agg position for categories HAS to be last in the LAE grader report
  *          $preferences['prefgeneral']['aggregationposition'] = array(GRADE_REPORT_PREFERENCE_DEFAULT => '*default*',
                                                                        GRADE_REPORT_AGGREGATION_POSITION_FIRST => get_string('positionfirst', 'grades'),
@@ -117,10 +119,11 @@ class laegrader_report_preferences_form extends moodleform {
             $preferences['prefshow']['showactivityicons'] = $checkbox_default;
             $preferences['prefshow']['showranges'] = $checkbox_default;
             $preferences['prefshow']['showanalysisicon'] = $checkbox_default;
-            $preferences['prefshow']['showzerofill'] = $checkbox_default; // have to get this fixed first
-            
+            $preferences['prefshow']['showzerofill'] = $checkbox_default;
+            $preferences['prefshow']['showclearoverrides'] = $checkbox_default;
+
             if ($canviewhidden) {
-                $preferences['prefrows']['shownumberofgrades'] = $checkbox_default;
+//                $preferences['prefrows']['shownumberofgrades'] = $checkbox_default;
             }
 
             $advanced = array_merge($advanced, array('aggregationposition'));
@@ -175,14 +178,14 @@ class laegrader_report_preferences_form extends moodleform {
                     $options[GRADE_REPORT_PREFERENCE_DEFAULT] = get_string('reportdefault', 'grades', $default);
                 }
 
-                if ($lang_string == 'gradeeditalways' || $lang_string == 'laegraderreportheight' || $lang_string == 'showzerofill') {
+                if ($lang_string == 'showclearoverrides' || $lang_string == 'laegraderreportheight' || $lang_string == 'showzerofill') {
                 	$label = get_string($lang_string, 'gradereport_laegrader') ;
                 } else {
                 	$label = get_string($lang_string, 'grades') . $number;
                 }
 
                 $mform->addElement($type, $full_pref, $label, $options);
-                if ($lang_string != 'showuserimage') {
+                if ($lang_string != 'showuserimage' && $lang_string != 'showclearoverrides' && $lang_string != 'laegraderreportheight' && $lang_string != 'showzerofill') {
                     $mform->addHelpButton($full_pref, $lang_string, 'grades');
                 }
                 $mform->setDefault($full_pref, $pref_value);
