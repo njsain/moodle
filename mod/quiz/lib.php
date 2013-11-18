@@ -90,10 +90,54 @@ function quiz_add_instance($quiz) {
     // Try to store it in the database.
     $quiz->id = $DB->insert_record('quiz', $quiz);
 
-    // Do the processing required after an add or an update.
+	// Do the processing required after an add or an update.
     quiz_after_add_or_update($quiz);
 
+	// disable the filters for quizes
+	quiz_deactivate_filters($quiz);
+	
     return $quiz->id;
+}
+
+/**
+ * Given a quiz object this function will
+ * deactivate all of the text filters for that quiz
+ *
+ * @param object $quiz the data that came from creating the quiz.
+ * @return bool success or failure.
+ */
+function quiz_deactivate_filters($quiz) {
+    global $DB;
+	
+	// get the instance context id
+	$context = get_context_instance(CONTEXT_MODULE, $quiz->coursemodule);
+	$contextid = $context->id;
+
+	/// Get the list of available filters.
+    $availablefilters = filter_get_available_in_context($context);
+    if (empty($availablefilters)) {
+        print_error('nofiltersenabled', 'error');
+    }
+	foreach ($availablefilters as $filter => $notused) {
+		$rec = $DB->get_record('filter_active', array('filter' => $filter, 'contextid' => $contextid));
+		$insert = false;
+		if (empty($rec) && $contextid) {
+			$insert = true;
+			$rec = new stdClass;
+			$rec->filter = $filter;
+			$rec->contextid = $contextid;
+		}
+
+		$rec->active = -1;
+
+		if ($insert) {
+			$DB->insert_record('filter_active', $rec);
+		} else {
+			$DB->update_record('filter_active', $rec);
+		}
+	}	
+
+	return true;
 }
 
 /**
@@ -106,7 +150,6 @@ function quiz_add_instance($quiz) {
  */
 function quiz_update_instance($quiz, $mform) {
     global $CFG, $DB;
-    require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
     // Process the options from the form.
     $result = quiz_process_options($quiz);
@@ -114,16 +157,11 @@ function quiz_update_instance($quiz, $mform) {
         return $result;
     }
 
-    // Get the current value, so we can see what changed.
     $oldquiz = $DB->get_record('quiz', array('id' => $quiz->instance));
-
-    // We need two values from the existing DB record that are not in the form,
-    // in some of the function calls below.
-    $quiz->sumgrades = $oldquiz->sumgrades;
-    $quiz->grade     = $oldquiz->grade;
 
     // Repaginate, if asked to.
     if (!$quiz->shufflequestions && !empty($quiz->repaginatenow)) {
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
         $quiz->questions = quiz_repaginate(quiz_clean_layout($oldquiz->questions, true),
                 $quiz->questionsperpage);
     }
@@ -137,15 +175,19 @@ function quiz_update_instance($quiz, $mform) {
     quiz_after_add_or_update($quiz);
 
     if ($oldquiz->grademethod != $quiz->grademethod) {
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        $quiz->sumgrades = $oldquiz->sumgrades;
+        $quiz->grade = $oldquiz->grade;
         quiz_update_all_final_grades($quiz);
         quiz_update_grades($quiz);
     }
 
-    $quizdateschanged = $oldquiz->timelimit   != $quiz->timelimit
-                     || $oldquiz->timeclose   != $quiz->timeclose
-                     || $oldquiz->graceperiod != $quiz->graceperiod;
-    if ($quizdateschanged) {
-        quiz_update_open_attempts(array('quizid' => $quiz->id));
+    $updateattempts = $oldquiz->timelimit != $quiz->timelimit
+                   || $oldquiz->timeclose != $quiz->timeclose
+                   || $oldquiz->graceperiod != $quiz->graceperiod;
+    if ($updateattempts) {
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        quiz_update_open_attempts(array('quizid'=>$quiz->id));
     }
 
     // Delete any previous preview attempts.
@@ -717,13 +759,6 @@ function quiz_grade_item_update($quiz, $grades = null) {
         // b) open enabled, closed disabled - we can not "hide after",
         //    grades are kept visible even after closing.
         $params['hidden'] = 0;
-    }
-
-    if (!$params['hidden']) {
-        // If the grade item is not hidden by the quiz logic, then we need to
-        // hide it if the quiz is hidden from students.
-        $cm = get_coursemodule_from_instance('quiz', $quiz->id);
-        $params['hidden'] = !$cm->visible;
     }
 
     if ($grades  === 'reset') {
