@@ -55,7 +55,7 @@ class enrol_meta_addinstance_form extends moodleform {
             if (!has_capability('enrol/meta:selectaslinked', $coursecontext)) {
                 continue;
             }
-            $courses[$c->id] = $coursecontext->get_context_name(false);
+            $courses[$c->id] = $coursecontext->get_context_name(false,true);
         }
         $rs->close();
 
