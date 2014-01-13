@@ -1070,12 +1070,9 @@ OET;
                     if (check_browser_version('MSIE') || check_browser_version('Safari')) {
                         continue;
                     }
-                } else {
-                    // Formats .m4v and .mp4 are not supported in Firefox or Opera.
-                    if (check_browser_version('Firefox') || check_browser_version('Opera')) {
-                        continue;
-                    }
                 }
+                 
+                // XXX NS removed browser check for Firefox and Opera 
 
                 $result[] = $url;
             }
