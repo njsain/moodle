@@ -1500,6 +1500,9 @@ class assign {
      * @return bool
      */
     public static function cron() {
+        // XXX NS disable all assignment notificaitons for now. See https://tracker.moodle.org/browse/MDL-33600 
+        return true;
+
         global $DB;
 
         // Only ever send a max of one days worth of updates.
@@ -1521,7 +1524,7 @@ class assign {
 
         if (empty($submissions)) {
             return true;
-        }
+        } 
 
         mtrace('Processing ' . count($submissions) . ' assignment submissions ...');
 
